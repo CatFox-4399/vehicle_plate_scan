@@ -216,6 +216,22 @@ Project Architecture:
   }
 }
                 </div>
+
+                <!-- Endpoint 5: delete vehicle -->
+                <h3 style="margin-top:2rem; color:#f8fafc;"><span class="endpoint-badge method-post" style="background:rgba(244,63,94,0.2); color:#fb7185;">DELETE</span> /api/vehicles.php</h3>
+                <p>Permanently deletes a registered vehicle record by ID (requires CSRF token).</p>
+                <div class="code-block">
+// Request (DELETE or POST with action=delete)
+// Headers: X-CSRF-Token: <token>
+// Parameters: ?id=4 or JSON {"id": 4}
+
+// Success Response (HTTP 200)
+{
+  "status": "success",
+  "message": "Vehicle record #4 has been permanently deleted from the registry.",
+  "data": { "id": 4 }
+}
+                </div>
             </section>
 
             <!-- Section 5: Security -->

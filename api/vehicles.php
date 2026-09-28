@@ -9,9 +9,48 @@ require_once __DIR__ . '/../includes/helpers.php';
 // Enforce rate limiting
 check_rate_limit('vehicles', RATE_LIMIT_MAX, RATE_LIMIT_WINDOW);
 
-// Only allow GET requests
-if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-    json_error('Method not allowed. Use GET.', 'METHOD_NOT_ALLOWED', 405);
+// Handle vehicle record deletion (DELETE or POST with action=delete)
+$requestMethod = $_SERVER['REQUEST_METHOD'];
+if ($requestMethod === 'DELETE' || ($requestMethod === 'POST' && (($_POST['action'] ?? '') === 'delete'))) {
+    // 1. Verify CSRF token
+    $rawInput = file_get_contents('php://input');
+    $jsonInput = json_decode($rawInput, true) ?? [];
+    
+    $token = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? ($jsonInput['csrf_token'] ?? ($_POST['csrf_token'] ?? null));
+    if (!verify_csrf_token($token)) {
+        json_error('Security validation failed: Invalid or expired CSRF token.', 'CSRF_INVALID', 403);
+    }
+
+    // 2. Validate Vehicle ID
+    $id = (int)($_GET['id'] ?? ($jsonInput['id'] ?? ($_POST['id'] ?? 0)));
+    if ($id <= 0) {
+        json_error('Invalid or missing vehicle ID.', 'INVALID_ID', 400);
+    }
+
+    // 3. Delete record using prepared statement
+    try {
+        $pdo = getDB();
+        $stmt = $pdo->prepare("DELETE FROM `vehicles` WHERE `id` = :id");
+        $stmt->execute([':id' => $id]);
+
+        if ($stmt->rowCount() > 0) {
+            json_response([
+                'status'  => 'success',
+                'message' => "Vehicle record #{$id} has been permanently deleted from the registry.",
+                'data'    => ['id' => $id]
+            ]);
+        } else {
+            json_error("Vehicle record #{$id} not found or already deleted.", 'NOT_FOUND', 404);
+        }
+    } catch (PDOException $e) {
+        error_log("Vehicle delete error: " . $e->getMessage());
+        json_error('Failed to delete vehicle record due to a server error.', 'SERVER_ERROR', 500);
+    }
+}
+
+// Otherwise, only allow GET requests
+if ($requestMethod !== 'GET') {
+    json_error('Method not allowed. Use GET or DELETE.', 'METHOD_NOT_ALLOWED', 405);
 }
 
 $pdo = getDB();

@@ -830,12 +830,22 @@
                         ${v.created_human}
                     </td>
                     <td>
-                        <button type="button" class="btn btn-secondary btn-icon-only" style="padding:0.4rem 0.65rem;" onclick="window.viewVehicleModal(${JSON.stringify(v).replace(/"/g, '&quot;')})">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                <circle cx="12" cy="12" r="3"></circle>
-                            </svg>
-                        </button>
+                        <div style="display:flex; gap:0.4rem; align-items:center;">
+                            <button type="button" class="btn btn-secondary btn-icon-only" style="padding:0.4rem 0.65rem;" title="View Details" onclick="window.viewVehicleModal(${JSON.stringify(v).replace(/"/g, '&quot;')})">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-icon-only btn-delete-row" style="padding:0.4rem 0.65rem;" title="Delete Vehicle" onclick="window.confirmDeleteVehicle(${v.id}, '${v.plate_number}')">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--accent-rose); width:16px; height:16px;">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                                </svg>
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `;
@@ -1054,7 +1064,14 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center;">
+                    <button type="button" class="btn btn-secondary modal-delete-action" style="color:var(--accent-rose); border-color:rgba(244,63,94,0.3); display:inline-flex; align-items:center; gap:0.4rem;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                        <span>${window.t ? window.t('registry.btn_delete') : 'Delete Vehicle'}</span>
+                    </button>
                     <button type="button" class="btn btn-secondary modal-close-action">Close</button>
                 </div>
             </div>
@@ -1063,12 +1080,59 @@
         const closeModal = () => modalBackdrop.remove();
         modalBackdrop.querySelector('.modal-close-btn').addEventListener('click', closeModal);
         modalBackdrop.querySelector('.modal-close-action').addEventListener('click', closeModal);
+        modalBackdrop.querySelector('.modal-delete-action').addEventListener('click', () => {
+            closeModal();
+            window.confirmDeleteVehicle(vehicle.id, vehicle.plate_number);
+        });
         modalBackdrop.addEventListener('click', (e) => {
             if (e.target === modalBackdrop) closeModal();
         });
 
         document.body.appendChild(modalBackdrop);
     };
+
+    /**
+     * Delete vehicle confirmation & AJAX execution
+     */
+    window.confirmDeleteVehicle = function (id, plate) {
+        const confirmMsg = window.t 
+            ? window.t('registry.delete_confirm', `Are you sure you want to permanently delete vehicle [${plate}] from the registry? This action cannot be undone.`).replace('{plate}', plate)
+            : `Are you sure you want to permanently delete vehicle [${plate}] from the registry? This action cannot be undone.`;
+
+        if (!confirm(confirmMsg)) {
+            return;
+        }
+
+        executeDeleteVehicle(id, plate);
+    };
+
+    async function executeDeleteVehicle(id, plate) {
+        try {
+            const response = await fetch(`api/vehicles.php?id=${encodeURIComponent(id)}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': state.csrfToken
+                },
+                body: JSON.stringify({ id: id })
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.status === 'success') {
+                const successMsg = window.t 
+                    ? window.t('registry.delete_success', `Vehicle record [${plate}] was successfully deleted.`).replace('{plate}', plate)
+                    : `Vehicle record [${plate}] was successfully deleted.`;
+                showToast('success', 'Vehicle Deleted', successMsg);
+                loadVehiclesDirectory(currentRegistryPage);
+            } else {
+                showToast('error', 'Delete Failed', result.message || 'Could not delete vehicle record.');
+            }
+        } catch (err) {
+            console.error('Delete error:', err);
+            showToast('error', 'Server Error', 'Failed to reach server to delete record.');
+        }
+    }
 
     window.changeRegistryPage = function (page) {
         loadVehiclesDirectory(page);
