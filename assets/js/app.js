@@ -133,9 +133,34 @@
      * Mobile Navigation Menu Toggle
      */
     if (dom.mobileNavToggle && dom.mainNav) {
-        dom.mobileNavToggle.addEventListener('click', () => {
+        dom.mobileNavToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
             const isOpen = dom.mainNav.classList.toggle('open');
             dom.mobileNavToggle.setAttribute('aria-expanded', isOpen);
+        });
+
+        // Close mobile nav when clicking any link
+        dom.mainNav.querySelectorAll('.nav-link, .lang-btn').forEach(item => {
+            item.addEventListener('click', () => {
+                dom.mainNav.classList.remove('open');
+                dom.mobileNavToggle.setAttribute('aria-expanded', 'false');
+            });
+        });
+
+        // Close mobile nav when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!dom.mainNav.contains(e.target) && !dom.mobileNavToggle.contains(e.target)) {
+                dom.mainNav.classList.remove('open');
+                dom.mobileNavToggle.setAttribute('aria-expanded', 'false');
+            }
+        });
+
+        // Close on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && dom.mainNav.classList.contains('open')) {
+                dom.mainNav.classList.remove('open');
+                dom.mobileNavToggle.setAttribute('aria-expanded', 'false');
+            }
         });
     }
 
