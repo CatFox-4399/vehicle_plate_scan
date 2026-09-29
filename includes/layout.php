@@ -34,8 +34,9 @@ function render_header(string $pageTitle, string $activePage = 'index', string $
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 
-    <!-- Core Stylesheet -->
-    <link rel="stylesheet" href="assets/css/style.css?v=<?php echo APP_VERSION; ?>">
+    <!-- Core Stylesheet with automatic cache busting -->
+    <?php $cssVersion = @filemtime(__DIR__ . '/../assets/css/style.css') ?: (defined('APP_VERSION') ? APP_VERSION : '1.0.1'); ?>
+    <link rel="stylesheet" href="assets/css/style.css?v=<?php echo $cssVersion; ?>">
 </head>
 <body>
     <!-- Ambient glowing backdrop effect -->
@@ -214,9 +215,13 @@ function render_footer(string $extraScripts = ''): void {
         </div>
     </footer>
 
-    <!-- Core Scripts -->
-    <script src="assets/js/i18n.js?v=<?php echo APP_VERSION; ?>"></script>
-    <script src="assets/js/app.js?v=<?php echo APP_VERSION; ?>"></script>
+    <!-- Core Scripts with automatic cache busting -->
+    <?php 
+        $i18nVersion = @filemtime(__DIR__ . '/../assets/js/i18n.js') ?: (defined('APP_VERSION') ? APP_VERSION : '1.0.1');
+        $jsVersion   = @filemtime(__DIR__ . '/../assets/js/app.js') ?: (defined('APP_VERSION') ? APP_VERSION : '1.0.1');
+    ?>
+    <script src="assets/js/i18n.js?v=<?php echo $i18nVersion; ?>"></script>
+    <script src="assets/js/app.js?v=<?php echo $jsVersion; ?>"></script>
     <?php if (!empty($extraScripts)): ?>
         <?php echo $extraScripts; ?>
     <?php endif; ?>

@@ -1093,6 +1093,13 @@ body {
     vertical-align: middle;
 }
 
+.registry-table th:last-child,
+.registry-table td:last-child {
+    min-width: 105px;
+    white-space: nowrap;
+    text-align: right;
+}
+
 .registry-table tbody tr {
     transition: background-color var(--transition-fast);
 }
